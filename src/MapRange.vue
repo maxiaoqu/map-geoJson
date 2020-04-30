@@ -31,7 +31,7 @@
         name: "MapRange",
         data() {
             return {
-                nameType: 'name'
+                nameType: 'code'
             }
         },
         mounted() {
