@@ -1,7 +1,7 @@
 <template>
     <div class="body">
         <div class="map">
-            <map-range @change="search"></map-range>
+            <map-range @change="search" @click="downloadJson"></map-range>
         </div>
         <div class="echarts">
             <echarts-map></echarts-map>
@@ -27,7 +27,7 @@
                 uimap: null,
                 district: null,
                 polygons: [],
-                citycode: null,
+                cityCode: 100000,
                 citySelect: null,
                 districtSelect: null,
                 opts: {},
@@ -58,22 +58,7 @@
             });
         },
         methods: {
-            searchCodeByName() {
-                let params = {keywords: this.cityName, key: 'f96e004d0a6a273d3b2dc7725db0f6b4'};
-                this.http(this, 'https://restapi.amap.com/v3/config/district', params, res => {
-                    if (res.status == 1) {
-                        let codes = [];
-                        for (let i in res.districts) {
-                            codes.push(res.districts[i].adcode);
-                        }
-                        this.areaCode = codes.join(',');
-                        this.loadMapData(codes[0]);
-                    } else {
-                        this.$bottomToast(res.info);
-                    }
-                })
-            },
-            getLocationByIP() {
+            getLocation() {
                 let params = {key: 'f96e004d0a6a273d3b2dc7725db0f6b4'};
                 this.http(this, 'https://restapi.amap.com/v3/ip?parameters', params, res => {
                     if (res.status == 1) {
@@ -85,9 +70,6 @@
                 })
             },
             loadMapData(areaCode) {
-                // this.map = new AMap.Map('container', {
-                //     zoom: 4
-                // });
                 AMapUI.loadUI(['geo/DistrictExplorer'], DistrictExplorer => {
 
                     //创建一个实例
@@ -103,15 +85,19 @@
                             return;
                         }
                         let mapJson = {};
-                        this.geoJsonData = JSON.stringify(areaNode.getSubFeatures());
                         mapJson.features = areaNode.getSubFeatures();
                         this.loadMap(this.cityName, mapJson);
+                        this.geoJsonData = mapJson;
                     });
                 });
             },
-            downloadJson() {
-                var blob = new Blob([this.geoJsonData], {type: "text/plain;charset=utf-8"});
-                saveAs(blob, "100000.geoJson");//filename
+            downloadJson(nameType) {
+                var blob = new Blob([JSON.stringify(this.geoJsonData)], {type: "text/plain;charset=utf-8"});
+                let filename = this.cityName;
+                if (nameType === 'code') {
+                    filename = this.cityCode;
+                }
+                saveAs(blob, `${filename}.geoJson`);//filename
             },
             loadMap(mapName, data) {
                 if (data) {
@@ -201,6 +187,17 @@
                     var contentSub = new Option('--请选择--');
                     var curlevel = subList[0].level;
                     if (curlevel === 'street') {
+                       let mapJsonList = this.geoJsonData.features;
+                        let mapJson = {};
+                        for(let i in mapJsonList) {
+                            if(mapJsonList[i].properties.name == this.cityName) {
+                               mapJson.features = [].concat(mapJsonList[i]);
+                            }
+                        }
+                        this.mapData = [];
+                        this.mapData.push({name: this.cityName, value: Math.random() * 100});
+                        this.loadMap(this.cityName, mapJson);
+                        this.geoJsonData = mapJson;
                         return;
                     }
                     var curList = document.querySelector('#' + curlevel);
@@ -208,9 +205,9 @@
                     this.mapData = [];
                     for (var i = 0, l = subList.length; i < l; i++) {
                         var name = subList[i].name;
-                        this.mapData.push({name: name, value: Math.random() * 100});
-                        var levelSub = subList[i].level;
                         var cityCode = subList[i].citycode;
+                        this.mapData.push({name: name, value: Math.random() * 100, cityCode: cityCode});
+                        var levelSub = subList[i].level;
                         contentSub = new Option(name);
                         contentSub.setAttribute("value", levelSub);
                         contentSub.center = subList[i].center;
@@ -232,6 +229,7 @@
                 var keyword = option.text; //关键字
                 var adcode = option.adcode;
                 this.cityName = keyword;
+                this.cityCode = adcode;
                 this.district.setLevel(option.value); //行政区级别
                 this.district.setExtensions('all');
                 //行政区查询
