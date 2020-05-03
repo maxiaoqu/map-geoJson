@@ -6,7 +6,7 @@
         <div class="echarts">
             <div id="map"></div>
         </div>
-        <div class="tips" v-show="isShowTips">正在下载，请耐心等待。。。(可打开控制台查看进度详情)</div>
+        <div class="tips" v-show="isShowTips">正在下载中，请耐心等待。。。</div>
         <!--哎呀呀，这就是打赏弹窗，为方便你们删除，就单独抽出一个组件来吧-->
         <money-dialog ref="dialog" @confirm="downloadAllJson"></money-dialog>
         <!--github入口-->
@@ -153,9 +153,8 @@
 
                 this.downloadTips = '获取数据中...';
 
-//                this.district.setLevel('country'); //行政区级别
+                this.district.setLevel('country'); //行政区级别
                 this.district.setExtensions('all');
-                console.log('开始递归循环获取地区code..');
                 this.loopSearch('中国');
 
             },
@@ -173,7 +172,7 @@
                                 //有更好解决方案的大佬，麻烦告诉我一下，邮箱t@tsy6.com
                                 //或者直接Github提交PR，在此不胜感激
                                 if (this.codeList.length >= 428) {
-                                    console.log('code获取完成');
+                                    console.log('完成了');
                                     this.isCodeListLoadComplete = true;
                                 }
                                 if (result.districtList[0].districtList[i].adcode && result.districtList[0].districtList[i].level != 'city' && result.districtList[0].districtList[i].level != 'district' && result.districtList[0].districtList[i].level != 'street') {
@@ -193,7 +192,7 @@
                                         //有更好解决方案的大佬，麻烦告诉我一下，邮箱t@tsy6.com
                                         //或者直接Github提交PR，在此不胜感激
                                         if (this.codeList.length >= 428) {
-                                            console.log('code获取完成');
+                                            console.log('完成了');
                                             this.isCodeListLoadComplete = true;
                                         }
                                     }
@@ -204,7 +203,6 @@
                 }, 500)
             },
             loadAllGeoJson() {//通过codeList加载全部geoJson数据
-                console.log('开始加载geoJson数据');
                 AMapUI.loadUI(['geo/DistrictExplorer'], DistrictExplorer => {
 
                     //创建一个实例
@@ -216,6 +214,7 @@
                     for (let i in this.codeList) {
                         setTimeout(() => {
                             districtExplorer.loadAreaNode(this.codeList[i].code, (error, areaNode) => {
+
                                 if (error) {
                                     this.codeList[i].geo = 'error';
                                     return;
@@ -229,7 +228,6 @@
                                 } else {
                                     this.zip.file(`100000/${this.codeList[i].code.substring(0, 2)}0000/${this.codeList[i].code}.geoJson`, JSON.stringify(mapJson));
                                 }
-                                console.log(`${this.codeList[i].level}Zip--${this.codeList[i].name}--${this.codeList[i].code}`)
 
                                 if (this.codeList.every(item => item.geo)) {
                                     console.log('ziped');
@@ -247,7 +245,6 @@
                                             saveAs(content, "geoJson数据包.zip");
                                             this.downloadTips = '下载geoJson数据';
                                             this.isCodeListLoadComplete = false;
-                                            this.$ba.trackEvent('echartsMap', '文件下载', '打包下载成功');
                                         });
                                 }
                             });
